@@ -44,16 +44,20 @@ function LoginPage() {
         ? { type: "email", value: email }
         : { type: "phone", value: `${country} ${phone}` };
       try { localStorage.setItem("airbnb-clone-user", JSON.stringify(user)); } catch {}
-      toast.success("Welcome back!");
+      toast.success("Welcome back! 🎉", { duration: 2000 });
       setLoading(false);
-      navigate({ to: "/" });
+      setTimeout(() => {
+        navigate({ to: "/" });
+      }, 1200);
     }, 700);
   };
 
   const social = (name: string) => () => {
     try { localStorage.setItem("airbnb-clone-user", JSON.stringify({ type: "social", value: name })); } catch {}
-    toast.success(`Signed in with ${name}`);
-    navigate({ to: "/" });
+    toast.success(`Signed in with ${name}! 🎉`, { duration: 2000 });
+    setTimeout(() => {
+      navigate({ to: "/" });
+    }, 1200);
   };
 
   return (

@@ -43,7 +43,7 @@ function Counter({ label, sub, value, onChange }: { label: string; sub: string; 
   );
 }
 
-export function SearchBar({ compact }: { compact?: boolean }) {
+export function SearchBar({ compact, onSearch }: { compact?: boolean; onSearch?: (query: string) => void }) {
   const [open, setOpen] = useState(false);
   const [where, setWhere] = useState("");
   const [range, setRange] = useState<{ from?: Date; to?: Date } | undefined>();
@@ -51,6 +51,11 @@ export function SearchBar({ compact }: { compact?: boolean }) {
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [pets, setPets] = useState(0);
+
+  const handleSearch = (query: string) => {
+    onSearch?.(query);
+    setOpen(false);
+  };
 
   if (compact) {
     return (
@@ -71,6 +76,7 @@ export function SearchBar({ compact }: { compact?: boolean }) {
             children={children} setChildren={setChildren}
             infants={infants} setInfants={setInfants}
             pets={pets} setPets={setPets}
+            onSearch={handleSearch}
           />
         </PopoverContent>
       </Popover>
@@ -86,11 +92,19 @@ export function SearchBar({ compact }: { compact?: boolean }) {
             "divide-x divide-border"
           )}
         >
-          <span className="px-6 py-2.5 text-sm font-semibold rounded-full hover:bg-secondary transition">Anywhere</span>
+          <span className="px-6 py-2.5 text-sm font-semibold rounded-full hover:bg-secondary transition">
+            {where ? where : "Anywhere"}
+          </span>
           <span className="px-6 py-2.5 text-sm font-semibold hover:bg-secondary transition">Any week</span>
           <span className="pl-6 pr-2 py-2 text-sm font-normal text-muted-foreground flex items-center gap-2 rounded-full hover:bg-secondary transition">
             Add guests
-            <span className="h-8 w-8 rounded-full bg-primary hover:bg-primary-hover text-primary-foreground flex items-center justify-center transition">
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSearch(where);
+              }}
+              className="h-8 w-8 rounded-full bg-primary hover:bg-primary-hover text-primary-foreground flex items-center justify-center transition cursor-pointer"
+            >
               <Search className="h-4 w-4" />
             </span>
           </span>
@@ -104,6 +118,7 @@ export function SearchBar({ compact }: { compact?: boolean }) {
           children={children} setChildren={setChildren}
           infants={infants} setInfants={setInfants}
           pets={pets} setPets={setPets}
+          onSearch={handleSearch}
         />
       </PopoverContent>
     </Popover>
@@ -111,7 +126,7 @@ export function SearchBar({ compact }: { compact?: boolean }) {
 }
 
 function SearchPanels(props: any) {
-  const { where, setWhere, range, setRange, adults, setAdults, children, setChildren, infants, setInfants, pets, setPets } = props;
+  const { where, setWhere, range, setRange, adults, setAdults, children, setChildren, infants, setInfants, pets, setPets, onSearch } = props;
   return (
     <Tabs defaultValue="where" className="w-full">
       <TabsList className="grid w-full grid-cols-3">
@@ -124,6 +139,9 @@ function SearchPanels(props: any) {
           placeholder="Search destinations"
           value={where}
           onChange={(e) => setWhere(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onSearch?.(where);
+          }}
           className="rounded-full h-11 px-5"
         />
         <div className="mt-4 text-sm font-semibold text-foreground">Suggested destinations</div>
@@ -131,7 +149,10 @@ function SearchPanels(props: any) {
           {suggestions.map((s) => (
             <button
               key={s.name}
-              onClick={() => setWhere(s.name)}
+              onClick={() => {
+                setWhere(s.name);
+                onSearch?.(s.name);
+              }}
               className="flex items-center gap-3 rounded-xl border border-border p-2 hover:bg-secondary transition text-left"
             >
               <img src={s.img} alt={s.name} className="h-12 w-12 rounded-lg object-cover" />
@@ -156,7 +177,10 @@ function SearchPanels(props: any) {
         <Counter label="Pets" sub="Bringing a service animal?" value={pets} onChange={setPets} />
       </TabsContent>
       <div className="mt-4 flex justify-end">
-        <Button className="rounded-full bg-primary hover:bg-primary-hover text-primary-foreground">
+        <Button
+          onClick={() => onSearch?.(where)}
+          className="rounded-full bg-primary hover:bg-primary-hover text-primary-foreground"
+        >
           <Search className="h-4 w-4 mr-2" /> Search
         </Button>
       </div>

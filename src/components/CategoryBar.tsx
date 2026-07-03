@@ -22,12 +22,13 @@ const iconMap: Record<string, any> = {
 };
 
 export function CategoryBar({
-  active, onChange, showTotal, onToggleTotal,
+  active, onChange, showTotal, onToggleTotal, onApplyFilters,
 }: {
   active: string;
   onChange: (c: string) => void;
   showTotal: boolean;
   onToggleTotal: (v: boolean) => void;
+  onApplyFilters?: (price: [number, number], type: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -94,7 +95,7 @@ export function CategoryBar({
           </div>
           <div className="hidden lg:flex items-center gap-4 shrink-0">
             <div className="h-8 w-px bg-border" />
-            <FiltersSheet />
+            <FiltersSheet onApply={onApplyFilters} />
             <label className="flex items-center gap-3 border border-border rounded-xl px-3 py-2 hover:shadow-sm transition cursor-pointer">
               <span className="text-xs font-medium">Display total before taxes</span>
               <Switch checked={showTotal} onCheckedChange={onToggleTotal} />
@@ -106,11 +107,22 @@ export function CategoryBar({
   );
 }
 
-function FiltersSheet() {
-  const [price, setPrice] = useState<[number, number]>([1000, 25000]);
+function FiltersSheet({ onApply }: { onApply?: (price: [number, number], type: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [price, setPrice] = useState<[number, number]>([500, 25000]);
+  const [type, setType] = useState("Any type");
+  const [bedrooms, setBedrooms] = useState(0);
+  const [beds, setBeds] = useState(0);
+  const [bathrooms, setBathrooms] = useState(0);
   const amenities = ["Wi-Fi", "Kitchen", "Washer", "Air conditioning", "Pool", "Hot tub", "Free parking", "Breakfast"];
+
+  const handleShowHomes = () => {
+    onApply?.(price, type);
+    setOpen(false);
+  };
+
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <button className="flex items-center gap-2 border border-foreground/80 text-foreground bg-background rounded-xl px-3 py-2 text-xs font-semibold hover:shadow-md transition">
           <SlidersHorizontal className="h-4 w-4" /> Filters
@@ -131,7 +143,7 @@ function FiltersSheet() {
           </section>
           <section>
             <h3 className="font-semibold mb-3">Type of place</h3>
-            <RadioGroup defaultValue="any" className="gap-3">
+            <RadioGroup value={type} onValueChange={setType} className="gap-3">
               {["Any type", "Room", "Entire home"].map((t) => (
                 <div key={t} className="flex items-center gap-3">
                   <RadioGroupItem value={t} id={t} />
@@ -142,13 +154,28 @@ function FiltersSheet() {
           </section>
           <section>
             <h3 className="font-semibold mb-3">Rooms and beds</h3>
-            {["Bedrooms", "Beds", "Bathrooms"].map((r) => (
-              <div key={r} className="flex justify-between items-center py-2">
-                <span className="text-sm">{r}</span>
+            {[
+              { label: "Bedrooms", value: bedrooms, setValue: setBedrooms },
+              { label: "Beds", value: beds, setValue: setBeds },
+              { label: "Bathrooms", value: bathrooms, setValue: setBathrooms },
+            ].map(({ label, value, setValue }) => (
+              <div key={label} className="flex justify-between items-center py-2">
+                <span className="text-sm">{label}</span>
                 <div className="flex items-center gap-2">
-                  <button className="h-7 w-7 rounded-full border">-</button>
-                  <span className="w-6 text-center text-sm">Any</span>
-                  <button className="h-7 w-7 rounded-full border">+</button>
+                  <button
+                    onClick={() => setValue(Math.max(0, value - 1))}
+                    disabled={value === 0}
+                    className="h-7 w-7 rounded-full border flex items-center justify-center hover:border-foreground disabled:opacity-40 transition"
+                  >
+                    -
+                  </button>
+                  <span className="w-6 text-center text-sm">{value === 0 ? "Any" : value}</span>
+                  <button
+                    onClick={() => setValue(value + 1)}
+                    className="h-7 w-7 rounded-full border flex items-center justify-center hover:border-foreground transition"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             ))}
@@ -165,7 +192,10 @@ function FiltersSheet() {
           </section>
         </div>
         <SheetFooter>
-          <Button className="w-full rounded-full bg-primary hover:bg-primary-hover text-primary-foreground">
+          <Button
+            onClick={handleShowHomes}
+            className="w-full rounded-full bg-primary hover:bg-primary-hover text-primary-foreground"
+          >
             Show homes
           </Button>
         </SheetFooter>
