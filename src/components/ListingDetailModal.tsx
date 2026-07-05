@@ -1,6 +1,10 @@
-import { Star, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Star, MapPin, Minus, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { toast } from "sonner";
 import type { Listing } from "@/data/mockListings";
 
 export function ListingDetailModal({
@@ -10,7 +14,35 @@ export function ListingDetailModal({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
+  const [checkIn, setCheckIn] = useState<Date | undefined>();
+  const [checkOut, setCheckOut] = useState<Date | undefined>();
+  const [guests, setGuests] = useState(1);
+
   if (!listing) return null;
+
+  const nights =
+    checkIn && checkOut
+      ? Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+  const total = nights * listing.price;
+
+  const canReserve = checkIn && checkOut && nights > 0;
+
+  const handleReserve = () => {
+    if (!canReserve) {
+      toast.error("Please select check-in and check-out dates");
+      return;
+    }
+    toast.success(
+      `Reserved! ${nights} night${nights > 1 ? "s" : ""} · ₹${total.toLocaleString("en-IN")} total`,
+      { duration: 3000 }
+    );
+    onOpenChange(false);
+  };
+
+  const formatDate = (d?: Date) =>
+    d ? d.toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "Add date";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
@@ -69,21 +101,68 @@ export function ListingDetailModal({
               </div>
               <div className="border border-border rounded-xl mt-4 divide-y divide-border">
                 <div className="grid grid-cols-2 divide-x divide-border">
-                  <div className="p-3">
-                    <div className="text-[10px] font-bold">CHECK-IN</div>
-                    <div className="text-sm text-muted-foreground">Add date</div>
-                  </div>
-                  <div className="p-3">
-                    <div className="text-[10px] font-bold">CHECKOUT</div>
-                    <div className="text-sm text-muted-foreground">Add date</div>
-                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="p-3 text-left hover:bg-secondary transition">
+                        <div className="text-[10px] font-bold">CHECK-IN</div>
+                        <div className="text-sm text-muted-foreground">{formatDate(checkIn)}</div>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar mode="single" selected={checkIn} onSelect={setCheckIn} className="pointer-events-auto" />
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="p-3 text-left hover:bg-secondary transition">
+                        <div className="text-[10px] font-bold">CHECKOUT</div>
+                        <div className="text-sm text-muted-foreground">{formatDate(checkOut)}</div>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar mode="single" selected={checkOut} onSelect={setCheckOut} className="pointer-events-auto" />
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <div className="p-3">
-                  <div className="text-[10px] font-bold">GUESTS</div>
-                  <div className="text-sm text-muted-foreground">1 guest</div>
+                <div className="p-3 flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold">GUESTS</div>
+                    <div className="text-sm text-muted-foreground">{guests} guest{guests > 1 ? "s" : ""}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setGuests((g) => Math.max(1, g - 1))}
+                      className="h-7 w-7 rounded-full border flex items-center justify-center hover:border-foreground transition"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => setGuests((g) => Math.min(16, g + 1))}
+                      className="h-7 w-7 rounded-full border flex items-center justify-center hover:border-foreground transition"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
-              <Button disabled className="w-full mt-4 rounded-full bg-primary hover:bg-primary-hover text-primary-foreground h-12 text-base font-semibold">
+
+              {nights > 0 && (
+                <div className="mt-4 text-sm space-y-1">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>₹{listing.price.toLocaleString("en-IN")} × {nights} night{nights > 1 ? "s" : ""}</span>
+                    <span>₹{total.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold border-t border-border pt-2">
+                    <span>Total</span>
+                    <span>₹{total.toLocaleString("en-IN")}</span>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={handleReserve}
+                className="w-full mt-4 rounded-full bg-primary hover:bg-primary-hover text-primary-foreground h-12 text-base font-semibold"
+              >
                 Reserve
               </Button>
               <p className="text-center text-xs text-muted-foreground mt-2">You won't be charged yet</p>
