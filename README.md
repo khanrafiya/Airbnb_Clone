@@ -49,5 +49,3 @@ This project recreates the Airbnb homepage experience — from the search bar an
 | Deployment | Vercel |
 
 ---
-
-## 📂 Project Structure
